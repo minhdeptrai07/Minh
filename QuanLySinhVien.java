@@ -1,72 +1,83 @@
+import java.io.*;
 import java.util.ArrayList;
-import java.util.Scanner;
 
 public class QuanLySinhVien {
     private ArrayList<SinhVien> danhSachSV = new ArrayList<>();
-    private Scanner scanner = new Scanner(System.in);
+    private String filePath;
 
-    // 1. Thêm sinh viên
-    public void themSinhVien() {
-        System.out.print("Nhap ma sinh vien: ");
-        String maSV = scanner.nextLine();
-        System.out.print("Nhap ten sinh vien: ");
-        String tenSV = scanner.nextLine();
-        System.out.print("Nhap diem trung binh: ");
-        double diemTB = Double.parseDouble(scanner.nextLine());
-        danhSachSV.add(new SinhVien(maSV, tenSV, diemTB));
+    public QuanLySinhVien(String filePath) {
+        this.filePath = filePath;
+        docDuLieuTuCSV(); // Đọc dữ liệu từ CSV khi khởi tạo
+    }
+
+    // Đọc dữ liệu từ file CSV
+    public void docDuLieuTuCSV() {
+        try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            boolean isHeader = true; // Bỏ qua dòng đầu tiên (header)
+            while ((line = br.readLine()) != null) {
+                if (isHeader) {
+                    isHeader = false;
+                    continue;
+                }
+                String[] parts = line.split(",");
+                if (parts.length == 3) {
+                    String maSV = parts[0].trim();
+                    String tenSV = parts[1].trim();
+                    double diemTB = Double.parseDouble(parts[2].trim());
+                    danhSachSV.add(new SinhVien(maSV, tenSV, diemTB));
+                }
+            }
+            System.out.println("Doc du lieu tu file CSV thanh cong.");
+        } catch (IOException e) {
+            System.out.println("Loi khi doc file CSV: " + e.getMessage());
+        }
+    }
+
+    // Ghi danh sách sinh viên ra file CSV
+    public void ghiDanhSachRaCSV() {
+        try (BufferedWriter bw = new BufferedWriter(new FileWriter(filePath))) {
+            bw.write("MaSV,TenSV,DiemTB");
+            bw.newLine();
+            for (SinhVien sv : danhSachSV) {
+                bw.write(sv.getMaSV() + "," + sv.getTenSV() + "," + sv.getDiemTB());
+                bw.newLine();
+            }
+            System.out.println("Luu danh sach sinh vien vao file CSV thanh cong.");
+        } catch (IOException e) {
+            System.out.println("Loi khi ghi file CSV: " + e.getMessage());
+        }
+    }
+
+    // Thêm sinh viên mới
+    public void themSinhVien(SinhVien sv) {
+        danhSachSV.add(sv);
+        ghiDanhSachRaCSV();
         System.out.println("Them sinh vien thanh cong.");
     }
 
-    // 2. Sửa sinh viên
-    public void suaSinhVien() {
-        System.out.print("Nhap ma sinh vien can sua: ");
-        String maSV = scanner.nextLine();
+    // Sửa thông tin sinh viên
+    public void suaSinhVien(String maSV, String tenMoi, double diemMoi) {
         for (SinhVien sv : danhSachSV) {
             if (sv.getMaSV().equals(maSV)) {
-                System.out.print("Nhap ten moi: ");
-                sv.setTenSV(scanner.nextLine());
-                System.out.print("Nhap diem TB moi: ");
-                sv.setDiemTB(Double.parseDouble(scanner.nextLine()));
-                System.out.println("Sua thong tin thanh cong.");
+                sv.setTenSV(tenMoi);
+                sv.setDiemTB(diemMoi);
+                ghiDanhSachRaCSV();
+                System.out.println("Sua thong tin sinh viên thanh cong.");
                 return;
             }
         }
-        System.out.println("Khong tim thay sinh vien.");
+        System.out.println("Khong tim thay sinh vien can sua.");
     }
 
-    // 3. Xóa sinh viên
-    public void xoaSinhVien() {
-        System.out.print("Nhap ma sinh vien can xoa: ");
-        String maSV = scanner.nextLine();
-        danhSachSV.removeIf(sv -> sv.getMaSV().equals(maSV));
-        System.out.println("Xoa sinh vien thanh cong.");
-    }
-
-    // 4. Sắp xếp sinh viên (Bubble Sort theo điểm TB)
-    public void sapXepSinhVien() {
-        for (int i = 0; i < danhSachSV.size() - 1; i++) {
-            for (int j = 0; j < danhSachSV.size() - i - 1; j++) {
-                if (danhSachSV.get(j).getDiemTB() > danhSachSV.get(j + 1).getDiemTB()) {
-                    SinhVien temp = danhSachSV.get(j);
-                    danhSachSV.set(j, danhSachSV.get(j + 1));
-                    danhSachSV.set(j + 1, temp);
-                }
-            }
+    // Xóa sinh viên theo mã
+    public void xoaSinhVien(String maSV) {
+        if (danhSachSV.removeIf(sv -> sv.getMaSV().equals(maSV))) {
+            ghiDanhSachRaCSV();
+            System.out.println("Xoa sinh vien thanh cong.");
+        } else {
+            System.out.println("Khong tim thay sinh vien can xoa.");
         }
-        System.out.println("Sap xep sinh vien thanh cong.");
-    }
-
-    // 5. Tìm kiếm sinh viên theo mã
-    public void timKiemSinhVien() {
-        System.out.print("Nhap ma sinh vien can tim: ");
-        String maSV = scanner.nextLine();
-        for (SinhVien sv : danhSachSV) {
-            if (sv.getMaSV().equals(maSV)) {
-                System.out.println("Thong tin sinh vien: " + sv);
-                return;
-            }
-        }
-        System.out.println("Khong tim thay sinh vien.");
     }
 
     // Hiển thị danh sách sinh viên
@@ -74,10 +85,19 @@ public class QuanLySinhVien {
         if (danhSachSV.isEmpty()) {
             System.out.println("Danh sach sinh vien trong.");
         } else {
-            System.out.println("Danh sach sinh vien:");
             for (SinhVien sv : danhSachSV) {
                 System.out.println(sv);
             }
         }
+    }
+
+    // Tìm kiếm sinh viên theo mã
+    public SinhVien timKiemSinhVienTheoMa(String maSV) {
+        for (SinhVien sv : danhSachSV) {
+            if (sv.getMaSV().equalsIgnoreCase(maSV)) {
+                return sv;
+            }
+        }
+        return null; // Không tìm thấy
     }
 }
